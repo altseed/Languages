@@ -39,6 +39,23 @@ namespace cs2ast
 			var rootNode = syntaxTree.GetRoot();
 			var walker = new Walker();
 			walker.Visit(rootNode);
+
+			var assemblyPath = System.IO.Path.GetDirectoryName(typeof(object).Assembly.Location);
+			var mscorelib = new Microsoft.CodeAnalysis.MetadataFileReference(System.IO.Path.Combine(assemblyPath, "mscorlib.dll"));
+
+			var compilation = Microsoft.CodeAnalysis.CSharp.CSharpCompilation.Create(
+						"Compilation",
+						syntaxTrees: new[] { syntaxTree },
+						references: new[] { mscorelib },
+						options : new Microsoft.CodeAnalysis.CSharp.CSharpCompilationOptions(
+                                                  Microsoft.CodeAnalysis.OutputKind.ConsoleApplication));
+
+			var semanticModel = compilation.GetSemanticModel(syntaxTree);
+			var decl = semanticModel.GetDeclarationDiagnostics();
+			var methodBodies = semanticModel.GetMethodBodyDiagnostics();
+
+			var type = compilation.GetTypeByMetadataName("cs2ast.Program");
+			
 		}
 	}
 }
