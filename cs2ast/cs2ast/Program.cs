@@ -41,6 +41,8 @@ namespace cs2ast
 		}
 	}
 
+	
+
 	class Program
 	{
 		static void Main(string[] args)
@@ -68,7 +70,7 @@ namespace cs2ast
 
 			var type = compilation.GetTypeByMetadataName("cs2ast.Program");
 
-			var walker = new Walker(semanticModel);
+			var walker = new XMLWalker(semanticModel);
 			walker.Visit(semanticModel.SyntaxTree.GetRoot());
 
 			System.Console.ReadKey(false);
