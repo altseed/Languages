@@ -15,13 +15,13 @@ namespace cs2ast
 
 	abstract class Node
 	{
-		protected Token Token { public get; protected set; }
+		public Token Token { get; protected set; }
 	}
 
 	class Class : Node
 	{
 		protected string name;
-		protected List<Member> Childs { public get; protected set; }
+		public List<Member> Childs { get; protected set; }
 	}
 
 
@@ -33,12 +33,12 @@ namespace cs2ast
 	}
 	abstract class Member : Node
 	{
-		protected Accessor Accessor { public get; protected set; }
+		public Accessor Accessor { get; protected set; }
 	}
 
 	class Method : Member
 	{
-		protected List<Argument> Arguments { public get; protected set; }
+		public List<Argument> Arguments { get; protected set; }
 	}
 
 	class Argument: Node
@@ -48,7 +48,7 @@ namespace cs2ast
 
 	class Block: Node
 	{
-		protected List<Expression> Expressions { public get; protected set; }
+		public List<Expression> Expressions { get; protected set; }
 
 	}
 	class Expression: Node
