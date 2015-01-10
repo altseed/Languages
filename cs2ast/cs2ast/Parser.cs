@@ -9,15 +9,15 @@ using Microsoft.CodeAnalysis.CSharp;
 
 namespace cs2ast
 {
-	enum Operations
-	{
-		Add,
-
-	}
-	class Walker : CSharpSyntaxWalker
+	
+	class Walker : CSharpSyntaxVisitor
 	{
 		private SemanticModel sema;
 		public Walker(SemanticModel s) { sema = s; }
+
+		private Node root;
+		private Node currentNode;
+
 		public override void Visit(SyntaxNode node)
 		{
 			if (node != null)
@@ -33,10 +33,11 @@ namespace cs2ast
 
 			}
 
-
+			
 			base.Visit(node);
 		}
 
+		/*
 		override public void VisitToken(SyntaxToken token)
 		{
 			base.VisitToken(token);
@@ -46,13 +47,14 @@ namespace cs2ast
 		{
 			base.VisitTrivia(trivia);
 		}
-
+		*/
 		public override void VisitBinaryExpression(Microsoft.CodeAnalysis.CSharp.Syntax.BinaryExpressionSyntax node)
 		{
 			Console.WriteLine("binexp");
-			node.CSharpKind();
+			// node.CSharpKind();
 
 			base.VisitBinaryExpression(node);
+			
 		}
 
 		public override void VisitAccessorDeclaration(Microsoft.CodeAnalysis.CSharp.Syntax.AccessorDeclarationSyntax node)
@@ -214,6 +216,15 @@ namespace cs2ast
 
 		public override void VisitCompilationUnit(Microsoft.CodeAnalysis.CSharp.Syntax.CompilationUnitSyntax node)
 		{
+			foreach(var n in node.ChildNodesAndTokens()){
+				if (n.IsNode){
+					Visit(n.AsNode());
+				}
+				else
+				{
+					Console.WriteLine("Token: " + n.AsToken().CSharpKind().ToString());
+				}
+			}
 			base.VisitCompilationUnit(node);
 		}
 
@@ -366,11 +377,6 @@ namespace cs2ast
 			base.VisitErrorDirectiveTrivia(node);
 		}
 
-		public override void VisitErrorDirectiveTrivia(Microsoft.CodeAnalysis.CSharp.Syntax.ErrorDirectiveTriviaSyntax node)
-		{
-			base.VisitErrorDirectiveTrivia(node);
-		}
-
 		public override void VisitEventDeclaration(Microsoft.CodeAnalysis.CSharp.Syntax.EventDeclarationSyntax node)
 		{
 			base.VisitEventDeclaration(node);
@@ -384,11 +390,6 @@ namespace cs2ast
 		public override void VisitExplicitInterfaceSpecifier(Microsoft.CodeAnalysis.CSharp.Syntax.ExplicitInterfaceSpecifierSyntax node)
 		{
 			base.VisitExplicitInterfaceSpecifier(node);
-		}
-
-		public override void VisitExpressionStatement(Microsoft.CodeAnalysis.CSharp.Syntax.ExpressionStatementSyntax node)
-		{
-			base.VisitExpressionStatement(node);
 		}
 
 		public override void VisitExpressionStatement(Microsoft.CodeAnalysis.CSharp.Syntax.ExpressionStatementSyntax node)
@@ -516,11 +517,12 @@ namespace cs2ast
 			base.VisitLabeledStatement(node);
 		}
 
+		/*
 		public override void VisitLeadingTrivia(SyntaxToken token)
 		{
 			base.VisitLeadingTrivia(token);
 		}
-
+		*/
 		public override void VisitLetClause(Microsoft.CodeAnalysis.CSharp.Syntax.LetClauseSyntax node)
 		{
 			base.VisitLetClause(node);
@@ -786,11 +788,13 @@ namespace cs2ast
 			base.VisitThrowStatement(node);
 		}
 
+		/*
 		public override void VisitTrailingTrivia(SyntaxToken token)
 		{
 			base.VisitTrailingTrivia(token);
 		}
 
+		*/
 		public override void VisitTryStatement(Microsoft.CodeAnalysis.CSharp.Syntax.TryStatementSyntax node)
 		{
 			base.VisitTryStatement(node);
@@ -951,7 +955,10 @@ namespace cs2ast
 	}
 
 
-
+	class Visiter : Microsoft.CodeAnalysis.CSharp.CSharpSyntaxVisitor<Node>
+	{
+		
+	}
 
 	class Parser
 	{
@@ -979,10 +986,9 @@ namespace cs2ast
 			var methodBodies = semanticModel.GetMethodBodyDiagnostics();
 
 			var type = compilation.GetTypeByMetadataName("cs2ast.Program");
-
+			
 			var walker = new Walker(semanticModel);
 			walker.Visit(semanticModel.SyntaxTree.GetRoot());
-
 			System.Console.ReadKey(false);
 
 		}
