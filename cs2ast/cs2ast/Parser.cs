@@ -15,21 +15,16 @@ namespace cs2ast
 		private SemanticModel sema;
 		public Walker(SemanticModel s) { sema = s; }
 
-		private Node root;
+		public Node root { private set; get; }
 		private Node currentNode;
 
 		public override void Visit(SyntaxNode node)
 		{
 			if (node != null)
 			{
-				Console.WriteLine("[Node  - Type: {0}, Kind: {1}]\n{2}\n", node.GetType().Name, ((SyntaxKind)node.RawKind).ToString(), node);
+				Console.WriteLine("[Node  - Type: {0}, Kind: {1}]\n{2}\n", node.GetType().Name, ((SyntaxKind)node.RawKind).ToString(),node);
 
-				var si = sema.GetSymbolInfo(node);
-				var n = si.Symbol;
-				if (n != null)
-				{
-					Console.WriteLine("Definition: {0}\n", n.OriginalDefinition.ToDisplayString());
-				}
+				
 
 			}
 
@@ -37,6 +32,60 @@ namespace cs2ast
 			base.Visit(node);
 		}
 
+		private string GetDefinition(SyntaxNode node)
+		{
+			var si = sema.GetSymbolInfo(node);
+			var n = si.Symbol;
+			if (n != null)
+			{
+				return n.OriginalDefinition.ToDisplayString();
+			}
+			else
+			{
+				return "";
+			}
+		}
+
+		private void VisitChildren(SyntaxNode csNode, Node astNode)
+		{
+			foreach (var n in csNode.ChildNodesAndTokens())
+			{
+				currentNode = astNode;
+				if (n.IsNode)
+				{
+					Visit(n.AsNode());
+				}
+				else
+				{
+					//Console.WriteLine("Token: " + n.AsToken().CSharpKind().ToString());
+				}
+			}
+		}
+
+
+		private NodeModifier SyntaToken2NodeModifier(SyntaxToken t)
+		{
+			switch (t.CSharpKind())
+			{
+				case SyntaxKind.StaticKeyword:
+					return NodeModifier.Static;
+					
+				case SyntaxKind.ReadOnlyKeyword:
+					return NodeModifier.ReadOnly;
+					
+				case SyntaxKind.ConstKeyword:
+					return NodeModifier.ReadOnly;
+
+				case SyntaxKind.PublicKeyword:
+					return NodeModifier.Public;
+				case SyntaxKind.ProtectedKeyword:
+					return NodeModifier.Protected;
+				case SyntaxKind.PrivateKeyword:
+					return NodeModifier.Private;
+				default:
+					throw new Exception("Unknown Modifier");
+			}
+		}
 		/*
 		override public void VisitToken(SyntaxToken token)
 		{
@@ -50,9 +99,10 @@ namespace cs2ast
 		*/
 		public override void VisitBinaryExpression(Microsoft.CodeAnalysis.CSharp.Syntax.BinaryExpressionSyntax node)
 		{
-			Console.WriteLine("binexp");
-			// node.CSharpKind();
-
+			var n = new Node(NodeKind.Expression);
+			n.content = new ExpressionContent(node.OperatorToken.ToString());
+			currentNode.AddChild(n);
+			VisitChildren(node, n);
 			base.VisitBinaryExpression(node);
 			
 		}
@@ -88,11 +138,15 @@ namespace cs2ast
 
 		public override void VisitArgument(Microsoft.CodeAnalysis.CSharp.Syntax.ArgumentSyntax node)
 		{
+			VisitChildren(node, currentNode);
 			base.VisitArgument(node);
 		}
 
 		public override void VisitArgumentList(Microsoft.CodeAnalysis.CSharp.Syntax.ArgumentListSyntax node)
 		{
+			var n = new Node(NodeKind.ApplyArguments);
+			currentNode.AddChild(n);
+			VisitChildren(node, n);
 			base.VisitArgumentList(node);
 		}
 
@@ -108,6 +162,10 @@ namespace cs2ast
 
 		public override void VisitArrayType(Microsoft.CodeAnalysis.CSharp.Syntax.ArrayTypeSyntax node)
 		{
+			var n = new Node(NodeKind.ArrayType);
+			currentNode.AddChild(n);
+			currentNode = n;
+			VisitChildren(node, n);
 			base.VisitArrayType(node);
 		}
 
@@ -158,6 +216,10 @@ namespace cs2ast
 
 		public override void VisitBlock(Microsoft.CodeAnalysis.CSharp.Syntax.BlockSyntax node)
 		{
+			var n = new Node(NodeKind.Block);
+			currentNode.AddChild(n);
+
+			VisitChildren(node, n);
 			base.VisitBlock(node);
 		}
 		public override void VisitBracketedArgumentList(Microsoft.CodeAnalysis.CSharp.Syntax.BracketedArgumentListSyntax node)
@@ -206,6 +268,11 @@ namespace cs2ast
 
 		public override void VisitClassDeclaration(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax node)
 		{
+			var n = new Node(NodeKind.Class);
+			currentNode.AddChild(n);
+
+			n.content = new StringContent(node.Identifier.ToString());
+			VisitChildren(node, n);
 			base.VisitClassDeclaration(node);
 		}
 
@@ -216,15 +283,8 @@ namespace cs2ast
 
 		public override void VisitCompilationUnit(Microsoft.CodeAnalysis.CSharp.Syntax.CompilationUnitSyntax node)
 		{
-			foreach(var n in node.ChildNodesAndTokens()){
-				if (n.IsNode){
-					Visit(n.AsNode());
-				}
-				else
-				{
-					Console.WriteLine("Token: " + n.AsToken().CSharpKind().ToString());
-				}
-			}
+			root = new Node(NodeKind.Code);
+			VisitChildren(node, root);
 			base.VisitCompilationUnit(node);
 		}
 
@@ -245,6 +305,13 @@ namespace cs2ast
 
 		public override void VisitConstructorDeclaration(Microsoft.CodeAnalysis.CSharp.Syntax.ConstructorDeclarationSyntax node)
 		{
+			var n = new Node(NodeKind.Ctor);
+			var fc = new FunctionContent();
+			fc.Name = node.Identifier.ToString();
+			fc.ReturnType = "";
+			n.content = fc;
+			currentNode.AddChild(n);
+			VisitChildren(node, n);
 			base.VisitConstructorDeclaration(node);
 		}
 
@@ -384,6 +451,9 @@ namespace cs2ast
 
 		public override void VisitEventFieldDeclaration(Microsoft.CodeAnalysis.CSharp.Syntax.EventFieldDeclarationSyntax node)
 		{
+			var n = new Node(NodeKind.FieldDecl);
+			currentNode.AddChild(n); // TODO: Modifier取得
+			VisitChildren(node, n);
 			base.VisitEventFieldDeclaration(node);
 		}
 
@@ -394,6 +464,9 @@ namespace cs2ast
 
 		public override void VisitExpressionStatement(Microsoft.CodeAnalysis.CSharp.Syntax.ExpressionStatementSyntax node)
 		{
+			var n = new Node(NodeKind.Code);
+			currentNode.AddChild(n);
+			VisitChildren(node, n);
 			base.VisitExpressionStatement(node);
 		}
 
@@ -454,6 +527,15 @@ namespace cs2ast
 
 		public override void VisitIdentifierName(Microsoft.CodeAnalysis.CSharp.Syntax.IdentifierNameSyntax node)
 		{
+			var n = new Node(NodeKind.Identifier);
+			currentNode.AddChild(n);
+
+			var ic = new IdentifierContent();
+			ic.Name = node.ToString();
+			ic.DetailInfo = GetDefinition(node);
+			n.content = ic;
+
+			// Console.WriteLine("Test: " + ic.DetailInfo);
 			base.VisitIdentifierName(node);
 		}
 
@@ -464,6 +546,10 @@ namespace cs2ast
 
 		public override void VisitIfStatement(Microsoft.CodeAnalysis.CSharp.Syntax.IfStatementSyntax node)
 		{
+			var n = new Node(NodeKind.ControlSyntax);
+			currentNode.AddChild(n);
+
+			VisitChildren(node, n);
 			base.VisitIfStatement(node);
 		}
 
@@ -499,6 +585,9 @@ namespace cs2ast
 
 		public override void VisitInvocationExpression(Microsoft.CodeAnalysis.CSharp.Syntax.InvocationExpressionSyntax node)
 		{
+			var n = new Node(NodeKind.Apply);
+			currentNode.AddChild(n);
+			VisitChildren(node, n);
 			base.VisitInvocationExpression(node);
 		}
 
@@ -540,6 +629,9 @@ namespace cs2ast
 
 		public override void VisitLocalDeclarationStatement(Microsoft.CodeAnalysis.CSharp.Syntax.LocalDeclarationStatementSyntax node)
 		{
+			var n = new Node(NodeKind.VarDecl);
+			currentNode.AddChild(n);
+			VisitChildren(node, n);
 			base.VisitLocalDeclarationStatement(node);
 		}
 
@@ -555,6 +647,9 @@ namespace cs2ast
 
 		public override void VisitMemberAccessExpression(Microsoft.CodeAnalysis.CSharp.Syntax.MemberAccessExpressionSyntax node)
 		{
+			var n = new Node(NodeKind.MemberAccess);
+			currentNode.AddChild(n);
+			VisitChildren(node, n);
 			base.VisitMemberAccessExpression(node);
 		}
 
@@ -565,6 +660,18 @@ namespace cs2ast
 
 		public override void VisitMethodDeclaration(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax node)
 		{
+			var n = new Node(NodeKind.Function);
+			currentNode.AddChild(n);
+
+			var fc = new FunctionContent();
+			fc.Name = node.Identifier.ToString();
+			fc.ReturnType = GetDefinition(node.ReturnType);
+			fc.Modifiers = node.Modifiers.Select(SyntaToken2NodeModifier).ToList();
+
+			n.content = fc;
+
+			VisitChildren(node, n);
+
 			base.VisitMethodDeclaration(node);
 		}
 
@@ -585,6 +692,10 @@ namespace cs2ast
 
 		public override void VisitNamespaceDeclaration(Microsoft.CodeAnalysis.CSharp.Syntax.NamespaceDeclarationSyntax node)
 		{
+			var n = new Node(NodeKind.Namespace);
+			currentNode.AddChild(n);
+			n.content = new StringContent(node.ChildNodes().FirstOrDefault(e => e.CSharpKind() == SyntaxKind.IdentifierName).ToString());
+			VisitChildren(node, n);
 			base.VisitNamespaceDeclaration(node);
 		}
 
@@ -630,11 +741,17 @@ namespace cs2ast
 
 		public override void VisitParameter(Microsoft.CodeAnalysis.CSharp.Syntax.ParameterSyntax node)
 		{
+			
+			// Console.WriteLine("Test: " + node.ToString());
+			var fc = (FunctionContent)currentNode.content;
+			VisitChildren(node, fc.Params);
+			// fc.Arguments.Add()
 			base.VisitParameter(node);
 		}
 
 		public override void VisitParameterList(Microsoft.CodeAnalysis.CSharp.Syntax.ParameterListSyntax node)
 		{
+			VisitChildren(node, currentNode);
 			base.VisitParameterList(node);
 		}
 
@@ -670,6 +787,10 @@ namespace cs2ast
 
 		public override void VisitPredefinedType(Microsoft.CodeAnalysis.CSharp.Syntax.PredefinedTypeSyntax node)
 		{
+			var n = new Node(NodeKind.Type);
+			n.content = new StringContent(node.ToString());
+			currentNode.AddChild(n);
+			VisitChildren(node, n);
 			base.VisitPredefinedType(node);
 		}
 
@@ -780,6 +901,7 @@ namespace cs2ast
 
 		public override void VisitThisExpression(Microsoft.CodeAnalysis.CSharp.Syntax.ThisExpressionSyntax node)
 		{
+			currentNode.AddChild(new Node(NodeKind.This));
 			base.VisitThisExpression(node);
 		}
 
@@ -847,6 +969,11 @@ namespace cs2ast
 
 		public override void VisitUsingDirective(Microsoft.CodeAnalysis.CSharp.Syntax.UsingDirectiveSyntax node)
 		{
+			var n = new Node(NodeKind.Using);
+			currentNode.AddChild(n);
+			// n.content = new StringContent(node.ChildNodes().FirstOrDefault(e => e.CSharpKind() == SyntaxKind.IdentifierName).ToString());
+			n.content = new StringContent(node.Name.ToString());
+			// n.content = node.
 			base.VisitUsingDirective(node);
 		}
 
@@ -955,17 +1082,10 @@ namespace cs2ast
 	}
 
 
-	class Visiter : Microsoft.CodeAnalysis.CSharp.CSharpSyntaxVisitor<Node>
-	{
-		
-	}
-
 	class Parser
 	{
-		public void Parse()
+		public Node Parse(string code)
 		{
-			var code = System.IO.File.ReadAllText("Program.cs");
-
 			var syntaxTree = CSharpSyntaxTree.ParseText(code);
 			var rootNode = syntaxTree.GetRoot();
 
@@ -989,8 +1109,9 @@ namespace cs2ast
 			
 			var walker = new Walker(semanticModel);
 			walker.Visit(semanticModel.SyntaxTree.GetRoot());
+			
 			System.Console.ReadKey(false);
-
+			return walker.root;
 		}
 	}
 }

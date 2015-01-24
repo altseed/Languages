@@ -13,8 +13,10 @@ namespace cs2ast
 	{
 		static void Main(string[] args)
 		{
+			var code = System.IO.File.ReadAllText("Profiler.cs");
+
 			Parser p = new Parser();
-			p.Parse();
+			p.Parse(code);
 
 		}
 	}
