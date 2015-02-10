@@ -16,7 +16,12 @@ namespace cs2ast
 			var code = System.IO.File.ReadAllText("Profiler.cs");
 
 			Parser p = new Parser();
-			p.Parse(code);
+			var n = p.Parse(code);
+			var w = new Writer.XMLWriter();
+			w.Write(n);
+			Console.WriteLine(w.GetResult());
+			System.Console.ReadKey(false);
+
 
 		}
 	}

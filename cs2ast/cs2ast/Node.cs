@@ -59,6 +59,10 @@ namespace cs2ast
 		{
 			Content = cont;
 		}
+		public override string ToString()
+		{
+			return Content;
+		}
 	}
 
 	class ExpressionContent: NodeContent
@@ -68,6 +72,10 @@ namespace cs2ast
 		{
 			Operator = oprator;
 		}
+		public override string ToString()
+		{
+			return Operator;
+		}
 	}
 
 	class FunctionContent: NodeContent
@@ -76,12 +84,20 @@ namespace cs2ast
 		public string ReturnType = "void";
 		public Node Params = new Node(NodeKind.Params);
 		public List<NodeModifier> Modifiers = new List<NodeModifier>();
+		public override string ToString()
+		{
+			return Name;
+		}
 	}
 
 	class IdentifierContent: NodeContent
 	{
 		public string Name = "";
 		public string DetailInfo = "";
+		public override string ToString()
+		{
+			return Name;
+		}
 	}
 
 	class Node
