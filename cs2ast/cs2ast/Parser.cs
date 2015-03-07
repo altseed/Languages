@@ -101,6 +101,7 @@ namespace cs2ast
 		{
 			var n = new Node(NodeKind.Expression);
 			n.content = new ExpressionContent(node.OperatorToken.ToString());
+			((ExpressionContent)n.content).kind = ExpressionKind.Binary;
 			currentNode.AddChild(n);
 			VisitChildren(node, n);
 			base.VisitBinaryExpression(node);

@@ -8,9 +8,10 @@ using Microsoft.CodeAnalysis.CSharp;
 namespace cs2ast
 {
 
-
+	
 	class Program
 	{
+		
 		static void Main(string[] args)
 		{
 			var code = System.IO.File.ReadAllText("Profiler.cs");
@@ -20,6 +21,11 @@ namespace cs2ast
 			var w = new Writer.XMLWriter();
 			w.Write(n);
 			Console.WriteLine(w.GetResult());
+			System.Console.ReadKey(false);
+
+			var w2 = new Writer.JavaWriter();
+			w2.Write(n);
+			Console.WriteLine(w2.GetResult());
 			System.Console.ReadKey(false);
 
 

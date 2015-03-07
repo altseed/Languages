@@ -47,6 +47,13 @@ namespace cs2ast
 		Private,
 		Internal,
 	}
+
+	enum ExpressionKind
+	{
+		Unary,
+		Binary,
+	}
+
 	abstract class NodeContent
 	{
 		
@@ -68,6 +75,7 @@ namespace cs2ast
 	class ExpressionContent: NodeContent
 	{
 		public string Operator = "";
+		public ExpressionKind kind = ExpressionKind.Unary;
 		public ExpressionContent(string oprator)
 		{
 			Operator = oprator;
